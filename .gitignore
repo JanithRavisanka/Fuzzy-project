@@ -1,1 +1,16 @@
-/.venv
+# Ignore all files
+*
+
+# Except .gitignore
+!.gitignore
+
+# Except .py files
+!*.py
+!*.yaml
+!*.txt
+
+# Ignore all directories
+*/
+
+# Except directories containing .py files
+!**/*.py

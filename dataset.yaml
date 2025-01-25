@@ -1,0 +1,5 @@
+names:
+  0: car
+path: /Users/janithravisanka/Documents/My-personal-projects/Fuzzy-project/yolo_dataset
+train: train/images
+val: val/images
