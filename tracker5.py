@@ -7,7 +7,7 @@ import skfuzzy.control as ctrl
 import concurrent.futures
 
 # Initialize YOLOv8 model
-model = YOLO("yolov8n.pt")
+model = YOLO("yolo11l.pt")
 
 # Kalman Filter Class for Object Tracking
 class ObjectTracker:
@@ -62,63 +62,40 @@ def fuzzy_iou_proximity(iou, distance, color_similarity):
     color_level = ctrl.Antecedent(np.arange(0, 1.1, 0.1), 'ColorSimilarity')
     match_level = ctrl.Consequent(np.arange(0, 1.1, 0.1), 'Match')
 
-    # Fuzzy membership functions
-    iou_level['low'] = fuzz.trimf(iou_level.universe, [0, 0, 0.5])
-    iou_level['medium'] = fuzz.trimf(iou_level.universe, [0.3, 0.5, 0.7])
-    iou_level['high'] = fuzz.trimf(iou_level.universe, [0.6, 1.0, 1.0])
+    # Simplified membership functions
+    iou_level['low'] = fuzz.trapmf(iou_level.universe, [0, 0, 0.3, 0.5])
+    iou_level['high'] = fuzz.trapmf(iou_level.universe, [0.3, 0.5, 1.0, 1.0])
 
-    distance_level['near'] = fuzz.trimf(distance_level.universe, [0, 0, 100])
-    distance_level['mid'] = fuzz.trimf(distance_level.universe, [50, 100, 150])
-    distance_level['far'] = fuzz.trimf(distance_level.universe, [100, 200, 200])
+    distance_level['near'] = fuzz.trapmf(distance_level.universe, [0, 0, 50, 100])
+    distance_level['far'] = fuzz.trapmf(distance_level.universe, [50, 100, 200, 200])
 
-    color_level['low'] = fuzz.trimf(color_level.universe, [0, 0, 0.5])
-    color_level['medium'] = fuzz.trimf(color_level.universe, [0.3, 0.5, 0.7])
-    color_level['high'] = fuzz.trimf(color_level.universe, [0.6, 1.0, 1.0])
+    color_level['low'] = fuzz.trapmf(color_level.universe, [0, 0, 0.3, 0.5])
+    color_level['high'] = fuzz.trapmf(color_level.universe, [0.3, 0.5, 1.0, 1.0])
 
-    match_level['low'] = fuzz.trimf(match_level.universe, [0, 0, 0.5])
-    match_level['medium'] = fuzz.trimf(match_level.universe, [0.3, 0.5, 0.7])
-    match_level['high'] = fuzz.trimf(match_level.universe, [0.6, 1.0, 1.0])
+    match_level['low'] = fuzz.trapmf(match_level.universe, [0, 0, 0.3, 0.5])
+    match_level['high'] = fuzz.trapmf(match_level.universe, [0.3, 0.5, 1.0, 1.0])
 
-    # Rules
-    # rules = [
-    #     ctrl.Rule(iou_level['high'] & distance_level['near'] & color_level['high'], match_level['high']),
-    #     ctrl.Rule(iou_level['medium'] & distance_level['near'] & color_level['medium'], match_level['medium']),
-    #     ctrl.Rule(iou_level['low'] & distance_level['near'] & color_level['low'], match_level['low'])
-    # ]
-        # Rules
+    # Simplified rules
     rules = [
-        # High IoU
-        ctrl.Rule(iou_level['high'] & distance_level['near'] & color_level['high'], match_level['high']),
-        ctrl.Rule(iou_level['high'] & distance_level['near'] & color_level['medium'], match_level['high']),
-        ctrl.Rule(iou_level['high'] & distance_level['near'] & color_level['low'], match_level['medium']),
-        ctrl.Rule(iou_level['high'] & distance_level['mid'] & color_level['high'], match_level['medium']),
-        ctrl.Rule(iou_level['high'] & distance_level['mid'] & color_level['medium'], match_level['medium']),
-        ctrl.Rule(iou_level['high'] & distance_level['mid'] & color_level['low'], match_level['low']),
-        ctrl.Rule(iou_level['high'] & distance_level['far'] & color_level['high'], match_level['low']),
-        ctrl.Rule(iou_level['high'] & distance_level['far'] & color_level['medium'], match_level['low']),
-        ctrl.Rule(iou_level['high'] & distance_level['far'] & color_level['low'], match_level['low']),
-
-        # Medium IoU
-        ctrl.Rule(iou_level['medium'] & distance_level['near'] & color_level['high'], match_level['medium']),
-        ctrl.Rule(iou_level['medium'] & distance_level['near'] & color_level['medium'], match_level['medium']),
-        ctrl.Rule(iou_level['medium'] & distance_level['near'] & color_level['low'], match_level['low']),
-        ctrl.Rule(iou_level['medium'] & distance_level['mid'] & color_level['high'], match_level['medium']),
-        ctrl.Rule(iou_level['medium'] & distance_level['mid'] & color_level['medium'], match_level['medium']),
-        ctrl.Rule(iou_level['medium'] & distance_level['mid'] & color_level['low'], match_level['low']),
-        ctrl.Rule(iou_level['medium'] & distance_level['far'] & color_level['high'], match_level['low']),
-        ctrl.Rule(iou_level['medium'] & distance_level['far'] & color_level['medium'], match_level['low']),
-        ctrl.Rule(iou_level['medium'] & distance_level['far'] & color_level['low'], match_level['low']),
-
-        # Low IoU
-        ctrl.Rule(iou_level['low'] & distance_level['near'] & color_level['high'], match_level['medium']),
-        ctrl.Rule(iou_level['low'] & distance_level['near'] & color_level['medium'], match_level['medium']),
-        ctrl.Rule(iou_level['low'] & distance_level['near'] & color_level['low'], match_level['low']),
-        ctrl.Rule(iou_level['low'] & distance_level['mid'] & color_level['high'], match_level['low']),
-        ctrl.Rule(iou_level['low'] & distance_level['mid'] & color_level['medium'], match_level['low']),
-        ctrl.Rule(iou_level['low'] & distance_level['mid'] & color_level['low'], match_level['low']),
-        ctrl.Rule(iou_level['low'] & distance_level['far'] & color_level['high'], match_level['low']),
-        ctrl.Rule(iou_level['low'] & distance_level['far'] & color_level['medium'], match_level['low']),
-        ctrl.Rule(iou_level['low'] & distance_level['far'] & color_level['low'], match_level['low'])
+        # High match conditions
+        ctrl.Rule(
+            iou_level['high'] & distance_level['near'] & color_level['high'],
+            match_level['high']
+        ),
+        
+        # Medium match conditions
+        ctrl.Rule(
+            (iou_level['high'] & distance_level['far']) |
+            (iou_level['low'] & distance_level['near'] & color_level['high']),
+            match_level['high']
+        ),
+        
+        # Low match conditions
+        ctrl.Rule(
+            (iou_level['low'] & distance_level['far']) |
+            (iou_level['low'] & color_level['low']),
+            match_level['low']
+        )
     ]
 
     # Control system
@@ -126,16 +103,15 @@ def fuzzy_iou_proximity(iou, distance, color_similarity):
     matching_sim = ctrl.ControlSystemSimulation(matching_ctrl)
 
     # Simulate
-    matching_sim.input['IoU'] = iou
-    matching_sim.input['Distance'] = distance
-    matching_sim.input['ColorSimilarity'] = color_similarity
-    matching_sim.compute()
-
     try:
+        matching_sim.input['IoU'] = iou
+        matching_sim.input['Distance'] = distance
+        matching_sim.input['ColorSimilarity'] = color_similarity
+        matching_sim.compute()
         return matching_sim.output['Match']
-    except KeyError as e:
+    except Exception as e:
         print(f"Error in fuzzy system: {e}. Returning default match score of 0.")
-        return 0  # Return 0 if there's an error
+        return 0
 
 
 # Helper Functions
@@ -163,6 +139,7 @@ def compute_iou(box1, box2):
     return inter_area / union_area if union_area > 0 else 0
 
 
+# Get the dominant color in a bounding box by averaging pixel colors
 def get_dominant_color(frame, bbox):
     x, y, w, h = bbox
     x1, y1 = max(0, int(x - w / 2)), max(0, int(y - h / 2))
@@ -196,6 +173,9 @@ def track_objects(video_path, max_age=10):
         detections = detections[confs > 0.5]
 
         unmatched_trackers = []
+        # Store original dimensions with trackers
+        original_dims = {}  # Dictionary to store width and height for each tracker
+
         for det in detections:
             cx, cy, w, h = det
             measurement = np.array([[cx], [cy]])
@@ -212,26 +192,55 @@ def track_objects(video_path, max_age=10):
                 match_score = fuzzy_iou_proximity(iou, distance, color_similarity)
                 if match_score > 0.5:  # Fuzzy threshold
                     tracker.update(measurement, color)
+                    original_dims[tracker.id] = (w, h)  # Store dimensions
                     matched = True
                     break
 
             if not matched:
                 new_tracker = ObjectTracker()
                 new_tracker.update(measurement, color)
+                original_dims[new_tracker.id] = (w, h)  # Store dimensions for new tracker
                 unmatched_trackers.append(new_tracker)
 
         trackers[:] = [t for t in trackers if t.age < max_age]
         trackers.extend(unmatched_trackers)
 
-        # Draw bounding boxes based on YOLO's predictions (use the original w, h)
+        # Draw bounding boxes using original dimensions
         for tracker in trackers:
             pred_x, pred_y = tracker.predict()
-            x, y, w, h = pred_x, pred_y, 50, 50
-            top_left = (int(x - w / 2), int(y - h / 2))
-            bottom_right = (int(x + w / 2), int(y + h / 2))
-            cv2.rectangle(frame, top_left, bottom_right, (0, 255, 0), 2)
-            cv2.putText(frame, f"ID {tracker.id}", (int(x - w / 2), int(y - h / 2) - 10), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
+            if tracker.id in original_dims:
+                w, h = original_dims[tracker.id]
+                top_left = (int(pred_x - w/2), int(pred_y - h/2))
+                bottom_right = (int(pred_x + w/2), int(pred_y + h/2))
+                
+                # Draw bounding box
+                cv2.rectangle(frame, top_left, bottom_right, (0, 255, 0), 2)
+                
+                # Draw ID with background for better visibility
+                label = f"ID {tracker.id}"
+                (label_width, label_height), baseline = cv2.getTextSize(
+                    label, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
+                )
+                
+                # Draw background rectangle for text
+                cv2.rectangle(
+                    frame,
+                    (top_left[0], top_left[1] - label_height - 10),
+                    (top_left[0] + label_width, top_left[1]),
+                    (0, 0, 0),
+                    -1,
+                )
+                
+                # Draw ID text
+                cv2.putText(
+                    frame,
+                    label,
+                    (top_left[0], top_left[1] - 5),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6,
+                    (255, 255, 255),
+                    2,
+                )
 
         return frame
 
@@ -248,4 +257,4 @@ def track_objects(video_path, max_age=10):
     cv2.destroyAllWindows()
 
 # Test the tracking with a video
-track_objects("vid.mp4")
+track_objects("vid4.mkv")
